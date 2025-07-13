@@ -18,27 +18,39 @@ async def single(file_name: str, model: str, region: str) -> None:
 
     now_utc = datetime.now(timezone.utc)
     start = time.monotonic()
+    model = model.replace("bedrock/","litellm_proxy/")
 
     response = await acompletion(
-        messages=dict_request, model=model, temperature=0, aws_region_name=region
+        messages=dict_request, 
+        model=model, 
+        temperature=0, 
+        base_url="http://localhost:3000/v1/chat/completions" ,
+        extra_headers={"x-provider": "bedrock"}
     )
-    took = time.monotonic() - start
+    took = int(1000*(time.monotonic() - start))
+    latency = int(response.get("metrics",{}).get("latencyMs","0"))
     print(
-        "Litellm     Start:",
+        "Litellm_px  Start:",
         now_utc,
         "Took:",
-        int(1000 * took),
-        "Model:",
-        model.replace("bedrock/", ""),
+        took,
+        "latency:",
+        latency,
+        "delta",
+        took-latency,
         region,
+        "Model:",
+        model,
+        
     )
 
 
 async def main(region) -> None:
     load_dotenv()
+    # litellm._turn_on_debug()
     models = [
         # "bedrock/amazon.nova-pro-v1:0",
-        "anthropic.claude-3-sonnet-20240229-v1:0",
+        "bedrock/anthropic.claude-3-sonnet-20240229-v1:0",
         # "bedrock/anthropic.claude-3-5-sonnet-20240620-v1:0",
         # "bedrock/anthropic.claude-3-haiku-20240307-v1:0",
     ]
